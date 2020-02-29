@@ -1,20 +1,36 @@
+#include <SPIFFS.h>
+
 #include <Wire.h>
 #include <Adafruit_INA219.h>
-#include <SSD1306Wire.h>
+#include <TFT_eSPI.h>
+#include <SPI.h>
 
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-#include <SPIFFS.h>
 
 const char* ssid = ".";
 const char* password = "12345678";
 
 AsyncWebServer server(80);
 
+#ifndef TFT_DISPOFF
+#define TFT_DISPOFF 0x28
+#endif
+
+#ifndef TFT_SLPIN
+#define TFT_SLPIN   0x10
+#endif
+
+#define ADC_EN          14
+#define ADC_PIN         34
+#define BUTTON_1        35
+#define BUTTON_2        0
+
 Adafruit_INA219 ina219;
-SSD1306Wire display(0x3c, 5, 4);
+//SSD1306Wire display(0x3c, 5, 4);
+TFT_eSPI display = TFT_eSPI(135, 240);
 
 #define WIDTH 128
 #define HIGHT 64
@@ -28,7 +44,7 @@ int lastValue = -100000;
 void setup() {
   display.init();
   //display.flipScreenVertically();
-  display.setFont(ArialMT_Plain_10);
+  //display.setFreeFont(FF10);
 
   Serial.begin(115200);
 
@@ -102,12 +118,12 @@ void loop() {
   }
   f.close();
 
-  display.clear();
-  display.setTextAlignment(TEXT_ALIGN_LEFT);
-  display.setFont(ArialMT_Plain_16);
-  display.drawString(0, 10, "Power");
-  display.setFont(ArialMT_Plain_24);
-  display.drawString(0, 26, String((float)power/1000) + " W");
+  //display.clear();
+  //display.setTextAlignment(TEXT_ALIGN_LEFT);
+  //display.setFreeFont(FF16);
+  display.drawString("Power", 0, 10, 4);
+  //display.setFont(FF24);
+  display.drawString(String((float)power/1000) + " W", 0, 26, 4);
 
   float offset = SCALE * (lastValue - power);
   lastValue = power;
@@ -116,11 +132,11 @@ void loop() {
   }
   lastValues[0] = 0;
   for (int i=1; i<WIDTH-1; i++) {
-    display.setPixel(WIDTH-i, HIGHT/2 + lastValues[i]);
+    //display.setPixel(WIDTH-i, HIGHT/2 + lastValues[i]);
     lastValues[i] += offset;;
   }
 
   Serial.println(offset);
 
-  display.display();
+  //display.display();
 }
