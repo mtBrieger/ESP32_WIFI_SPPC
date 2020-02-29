@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<style>
+
+line {
+  stroke: lightgrey;
+  stroke-opacity: 0.5;
+  shape-rendering: crispEdges;
+}
+
+.grid path {
+  stroke-width: 0;
+}
+
+.line {
+  stroke: #eab839;
+  stroke: 1;
+}
+
+.area {
+  fill: #eab839;
+  fill-opacity: 0.1;
+  stroke: #eab839;
+  stroke-width: 0;
+}
+
+.tick {
+  stroke: #d8d9da;
+  fill: #d8d9da;
+}
+
+
+body {
+  font-family: Sans-serif;
+  color: #d8d9da;
+  background: #171819;
+}
+
+</style>
+
+<head>
+  <title>graph</title>
+  <script src="d3.min.js"></script>
+</head>
+
+<body>
+  <div id="chart"></div>
+
+  <script>
+  // set the dimensions and margins of the graph
+  var margin = {top: 30, right: 30, bottom: 60, left: 60},
+  width = window.innerWidth - margin.left - margin.right,
+  height = window.innerHeight - margin.top - margin.bottom;
+  var i = 0;
+
+  // append the svg object to the body of the page
+  var svg = d3.select("#chart")
+  .append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  //Read the data
+  d3.csv("power.csv",
+  // When reading the csv, I must format variables:
+  function(d) {
+    return {date: i++, value : d.power /1000 }
+  },
+
+  // Now I can use this dataset:
+  function(data) {
+    // Add X axis --> it is a date format
+    var x = d3.scaleLinear()
+    .domain([0, i])
+    .range([ 0, width ]);
+    svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
+
+    // Add Y axis
+    var y = d3.scaleLinear()
+    .domain([0, d3.max(data, function(d) { return +d.value; })])
+    .range([ height, 0 ]);
+    svg.append("g")
+    .call(d3.axisLeft(y));
+
+    // add the X gridlines
+    svg.append("g")
+    .attr("class", "grid")
+    .attr("transform", "translate(0," + height + ")")
+    .call(make_x_gridlines()
+    .tickSize(-height)
+    .tickFormat("")
+  )
+
+  // add the Y gridlines
+  svg.append("g")
+  .attr("class", "grid")
+  .call(make_y_gridlines()
+  .tickSize(-width)
+  .tickFormat("")
+)
+
+
+// Add the line
+svg.append("path")
+.datum(data)
+.attr("class", "line")
+.attr("fill", "none")
+.attr("d", d3.line()
+.x(function(d) { return x(d.date) })
+.y(function(d) { return y(d.value) })
+)
+
+// Add the area
+svg.append("path")
+.datum(data)
+.attr("class", "area")
+.attr("d", d3.area()
+.x(function(d) { return x(d.date) })
+.y0(y(0))
+.y1(function(d) { return y(d.value) })
+)
+
+
+// gridlines in x axis function
+function make_x_gridlines() {
+  return d3.axisBottom(x)
+  .ticks(5)
+}
+// gridlines in y axis function
+function make_y_gridlines() {
+  return d3.axisLeft(y)
+  .ticks(5)
+}
+
+
+// This allows to find the closest X index of the mouse:
+var bisect = d3.bisector(function(d) { return d.date; }).left;
+// Create the circle that travels along the curve of chart
+var focus = svg
+.append('g')
+.append('circle')
+.style("fill", "none")
+.attr("class", "line")
+.attr('r', 6)
+.style("opacity", 0)
+
+// Create the text that travels along the curve of chart
+var focusText = svg
+.append('g')
+.append('text')
+.style("opacity", 0)
+.attr("text-anchor", "left")
+.attr("alignment-baseline", "middle")
+
+// Create a rect on top of the svg area: this rectangle recovers mouse position
+svg
+.append('rect')
+.style("fill", "none")
+.style("pointer-events", "all")
+.attr('width', width)
+.attr('height', height)
+.on('mouseover', mouseover)
+.on('mousemove', mousemove)
+.on('mouseout', mouseout);
+
+// What happens when the mouse move -> show the annotations at the right positions.
+function mouseover() {
+  focus.style("opacity", 1)
+  focusText.style("opacity",1)
+}
+
+function mousemove() {
+  // recover coordinate we need
+  var x0 = x.invert(d3.mouse(this)[0]);
+  var i = bisect(data, x0, 1);
+  selectedData = data[i]
+  focus
+
+  .attr("cx", x(selectedData.date))
+  .attr("cy", y(selectedData.value))
+  focusText
+  .html(selectedData.value.toFixed(2) + " W")
+  .attr("x", x(selectedData.date)+10)
+  .attr("y", y(selectedData.value))
+  .attr("class", "tick")
+}
+function mouseout() {
+  focus.style("opacity", 0)
+  focusText.style("opacity", 0)
+}
+})
+
+
+</script>
+
+</body>
+</html>
